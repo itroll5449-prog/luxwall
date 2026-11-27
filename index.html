@@ -29,6 +29,7 @@
     color:#fff; letter-spacing:.1em; line-height:1.18;
     display:flex; flex-wrap:wrap; justify-content:center; align-items:baseline;
     text-shadow:var(--glow-l); }
+  .lux-word .wrd { display:inline-flex; white-space:nowrap; }
   .lux-word span { display:inline-block; opacity:0; transform:translateY(26px);
     will-change:transform,opacity; animation:letterIn .55s cubic-bezier(.2,.7,.3,1) forwards; }
   .lux-word .sp { width:.45em; }
@@ -359,14 +360,23 @@ const $ = id => document.getElementById(id);
 const grid = $('grid'), sentinel = $('sentinel'), toast = $('toast');
 
 /* ===== SPLASH ===== */
-const WORD = 'Lux Wallpapers';
 const luxWord = $('luxWord');
-WORD.split('').forEach((ch, i) => {
-  const s = document.createElement('span');
-  if (ch === ' ') { s.className = 'sp'; }
-  else { s.textContent = ch; }
-  s.style.animationDelay = (0.1 + i * 0.045) + 's';
-  luxWord.appendChild(s);
+let li = 0;
+['Lux', 'Wallpapers'].forEach((word, wi) => {
+  const w = document.createElement('span');
+  w.className = 'wrd';
+  word.split('').forEach(ch => {
+    const s = document.createElement('span');
+    s.textContent = ch;
+    s.style.animationDelay = (0.1 + li++ * 0.045) + 's';
+    w.appendChild(s);
+  });
+  luxWord.appendChild(w);
+  if (wi === 0) {
+    const sp = document.createElement('span');
+    sp.className = 'sp';
+    luxWord.appendChild(sp);
+  }
 });
 setTimeout(() => {
   $('splash').classList.add('gone');
