@@ -261,10 +261,8 @@
   .stats b { color:#f2f2f5; font-weight:800; }
   .stats .sep { opacity:.35; margin:0 10px; }
   .stats a { color:inherit; text-decoration:none; border-bottom:1px solid rgba(255,255,255,.25); }
-  #luxDiamond { display:inline-block; margin-left:12px; color:var(--dim); opacity:.4;
-    font-size:11px; line-height:1; vertical-align:middle; cursor:default;
-    user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; }
-  #luxDiamond:active { transform:scale(.85); }
+  .signin-link { cursor:pointer; margin-left:10px; color:#f2f2f5; font-weight:800;
+    border-bottom:1px solid rgba(255,255,255,.4); letter-spacing:.08em; }
 
   /* ===== ADMIN MODE ===== */
   body.admin .logo .dot { background:linear-gradient(145deg,#fca5a5,#ef4444); color:#fff; }
@@ -389,7 +387,7 @@
 <div class="grid" id="grid"></div>
 <div id="sentinel"></div>
 <footer class="stats">
-  <b id="statCount">90+</b> curated walls<span class="sep">·</span> 4K–5K<span class="sep">·</span> updated weekly<span class="sep">·</span> made by <a href="https://luxwalls.github.io/luxwall/">dangerdevs</a><span id="luxDiamond" title="◈">◈</span>
+  <b id="statCount">90+</b> curated walls<span class="sep">·</span> 4K–5K<span class="sep">·</span> updated weekly<span class="sep">·</span> made by <a href="https://luxwalls.github.io/luxwall/">dangerdevs</a><span class="sep">·</span><a class="signin-link" id="signinLink">Sign in</a>
 </footer>
 
 <!-- ADMIN LOGIN MODAL -->
@@ -402,6 +400,20 @@
       <button id="adminCancel">Cancel</button>
       <button id="adminOk">Enter</button>
     </div>
+  </div>
+</div>
+
+<!-- SIGN IN MODAL -->
+<div id="signinModal">
+  <div class="admin-box">
+    <h3>Sign in</h3>
+    <p>Optional — browsing is always free. Enter your email.</p>
+    <input id="signinEmail" type="email" placeholder="you@email.com" autocomplete="off" style="letter-spacing:normal;" />
+    <div class="admin-btns">
+      <button id="signinCancel">Cancel</button>
+      <button id="signinOk" style="background:#f2f2f5;color:#0a0a0c;">Sign in</button>
+    </div>
+    <div class="hint" style="margin-top:12px;">Your email is stored only on this device.</div>
   </div>
 </div>
 
@@ -423,32 +435,49 @@ const $ = id => document.getElementById(id);
 const grid = $('grid'), sentinel = $('sentinel'), toast = $('toast');
 
 /* ===== ADMIN SYSTEM =====
-   Owner-only moderation. THREE ways to open the admin login:
-   1) HIDDEN DIAMOND: triple-tap the tiny ◈ diamond next to "dangerdevs" in the footer (does nothing else)
+   Owner-only moderation. THREE ways to become admin:
+   1) SIGN IN (recommended): footer "Sign in" link -> enter itroll5449@gmail.com -> instant admin
    2) Type the passcode in the SEARCH BAR
    3) Triple-tap the LUX logo (backup)
-   After login, red X buttons appear on every wallpaper. Deleting commits
+   No login is forced on visitors — the site is fully usable without signing in.
+   After admin mode, red X buttons appear on every wallpaper. Deleting commits
    the removal to the GitHub repo (main branch) so the wall disappears for EVERYONE. */
 const ADMIN_PASS = 'doomiscoming';
+const ADMIN_EMAILS = ['itroll5449@gmail.com'];
 let adminMode = false;
 
 function openAdminLogin() {
   $('adminModal').classList.add('open');
   setTimeout(() => $('adminPass').focus(), 60);
 }
+function grantAdmin(msg) {
+  adminMode = true;
+  localStorage.setItem('luxAdmin', '1');
+  document.body.classList.add('admin');
+  $('adminModal').classList.remove('open');
+  showToast(msg);
+}
 
-/* Hidden decorative diamond in the footer — 3 taps opens admin terminal */
-let dTaps = 0, dTimer = null;
-$('luxDiamond').addEventListener('click', () => {
-  dTaps++;
-  clearTimeout(dTimer);
-  dTimer = setTimeout(() => { dTaps = 0; }, 1000);
-  if (dTaps >= 3) {
-    dTaps = 0;
-    if (adminMode) { showToast('🔴 Admin already ON'); return; }
-    openAdminLogin();
-  }
+/* Sign in system — optional, footer link */
+$('signinLink').addEventListener('click', () => {
+  $('signinModal').classList.add('open');
+  setTimeout(() => $('signinEmail').focus(), 60);
 });
+$('signinCancel').addEventListener('click', () => { $('signinModal').classList.remove('open'); });
+$('signinOk').addEventListener('click', trySignin);
+$('signinEmail').addEventListener('keydown', e => { if (e.key === 'Enter') trySignin(); });
+function trySignin() {
+  const email = $('signinEmail').value.trim().toLowerCase();
+  if (!email.includes('@') || !email.includes('.')) { showToast('Enter a valid email'); return; }
+  localStorage.setItem('luxUser', email);
+  $('signinModal').classList.remove('open');
+  $('signinEmail').value = '';
+  if (ADMIN_EMAILS.includes(email)) {
+    grantAdmin('🔴 ADMIN MODE ON — red ✕ buttons remove walls for everyone');
+  } else {
+    showToast('Signed in — enjoy the walls!');
+  }
+}
 
 let logoTaps = 0, logoResetTimer = null, pickerTimer = null;
 $('homeBtn').addEventListener('click', () => {
@@ -468,12 +497,7 @@ $('adminOk').addEventListener('click', tryAdminLogin);
 $('adminPass').addEventListener('keydown', e => { if (e.key === 'Enter') tryAdminLogin(); });
 function tryAdminLogin() {
   if ($('adminPass').value.trim() === ADMIN_PASS) {
-    adminMode = true;
-    localStorage.setItem('luxAdmin', '1');
-    document.body.classList.add('admin');
-    $('adminModal').classList.remove('open');
-    $('adminPass').value = '';
-    showToast('🔴 ADMIN MODE ON — red ✕ buttons remove walls for everyone');
+    grantAdmin('🔴 ADMIN MODE ON — red ✕ buttons remove walls for everyone');
   } else {
     $('adminPass').value = '';
     showToast('❌ Wrong passcode');
