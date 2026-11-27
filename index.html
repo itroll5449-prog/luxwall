@@ -23,6 +23,7 @@
     --glow-s:0 0 12px rgba(255,255,255,.35), 0 0 32px rgba(255,255,255,.18);
     --glow-l:0 0 18px rgba(255,255,255,.45), 0 0 60px rgba(255,255,255,.25);
     --doom:#22c55e; --doom-dark:#052e16; --doom-glow:0 0 16px rgba(34,197,94,.5), 0 0 50px rgba(34,197,94,.25);
+    --danger:#ef4444; --danger-glow:0 0 16px rgba(239,68,68,.5), 0 0 40px rgba(239,68,68,.2);
   }
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   ::-webkit-scrollbar { width:8px; }
@@ -260,6 +261,34 @@
   .stats b { color:#f2f2f5; font-weight:800; }
   .stats .sep { opacity:.35; margin:0 10px; }
   .stats a { color:inherit; text-decoration:none; border-bottom:1px solid rgba(255,255,255,.25); }
+
+  /* ===== ADMIN MODE ===== */
+  body.admin .logo .dot { background:linear-gradient(145deg,#fca5a5,#ef4444); color:#fff; }
+  body.admin .logo::after { content:"ADMIN"; font-size:9px; letter-spacing:.2em; color:#ef4444; font-weight:800; }
+  .delbtn { position:absolute; top:10px; right:10px; z-index:6; width:34px; height:34px; border-radius:10px;
+    border:1px solid rgba(239,68,68,.6); background:rgba(239,68,68,.92); color:#fff; font-size:16px; font-weight:800;
+    cursor:pointer; display:none; align-items:center; justify-content:center; box-shadow:var(--danger-glow); transition:.2s; }
+  body.admin .delbtn { display:flex; }
+  .delbtn:hover { transform:scale(1.12); background:#fff; color:#ef4444; }
+  .delbtn:active { transform:scale(.9); }
+  #adminModal { position:fixed; inset:0; z-index:380; display:none; place-items:center;
+    background:rgba(0,0,2,.92); backdrop-filter:blur(14px); padding:20px; }
+  #adminModal.open { display:grid; }
+  .admin-box { width:min(360px, 92vw); background:#0c0c10; border:1px solid var(--stroke); border-radius:18px;
+    padding:24px; text-align:center; box-shadow:var(--glow-l); }
+  .admin-box h3 { font-family:'Cinzel',serif; font-size:20px; letter-spacing:.12em; color:#fff; }
+  .admin-box p { font-size:12px; color:var(--dim); margin-top:6px; }
+  .admin-box input { width:100%; margin:16px 0; padding:12px 14px; border-radius:11px; border:1px solid var(--stroke);
+    background:#000; color:#fff; font-size:16px; text-align:center; letter-spacing:.3em; outline:none; }
+  .admin-box input:focus { border-color:rgba(239,68,68,.7); box-shadow:var(--danger-glow); }
+  .admin-btns { display:flex; gap:10px; }
+  .admin-btns button { flex:1; padding:12px; border-radius:11px; border:none; cursor:pointer; font-family:inherit;
+    font-weight:700; font-size:13px; transition:.2s; }
+  #adminOk { background:#ef4444; color:#fff; }
+  #adminOk:hover { filter:brightness(1.2); }
+  #adminCancel { background:rgba(255,255,255,.08); color:#d8d8e0; border:1px solid var(--stroke); }
+  #adminCancel:hover { background:rgba(255,255,255,.15); }
+
   .modal { position:fixed; inset:0; z-index:300; display:none; place-items:center;
     background:rgba(0,0,2,.9); backdrop-filter:blur(12px); padding:clamp(14px,4vw,32px); }
   .modal.open { display:grid; }
@@ -359,6 +388,19 @@
   <b id="statCount">90+</b> curated walls<span class="sep">·</span> 4K–5K<span class="sep">·</span> updated weekly<span class="sep">·</span> made by <a href="https://luxwalls.github.io/luxwall/">dangerdevs</a>
 </footer>
 
+<!-- ADMIN LOGIN MODAL -->
+<div id="adminModal">
+  <div class="admin-box">
+    <h3>⚠ Admin Access</h3>
+    <p>Owner-only mode. Enter your passcode.</p>
+    <input id="adminPass" type="password" placeholder="PASSCODE" autocomplete="off" />
+    <div class="admin-btns">
+      <button id="adminCancel">Cancel</button>
+      <button id="adminOk">Enter</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="modal">
   <button class="close" id="mClose">✕</button>
   <div class="modal-inner">
@@ -375,6 +417,97 @@
 <script>
 const $ = id => document.getElementById(id);
 const grid = $('grid'), sentinel = $('sentinel'), toast = $('toast');
+
+/* ===== ADMIN SYSTEM =====
+   Owner-only moderation: triple-tap the LUX logo -> passcode -> red X buttons
+   appear on every wallpaper. Deleting commits the removal to the GitHub repo
+   (main branch) so the wall disappears for EVERYONE. */
+const ADMIN_PASS = 'doomiscoming';
+let adminMode = false;
+
+let logoTaps = 0, logoResetTimer = null, pickerTimer = null;
+$('homeBtn').addEventListener('click', () => {
+  logoTaps++;
+  clearTimeout(logoResetTimer);
+  clearTimeout(pickerTimer);
+  logoResetTimer = setTimeout(() => { logoTaps = 0; }, 700);
+  if (logoTaps >= 3) {
+    logoTaps = 0;
+    $('adminModal').classList.add('open');
+    setTimeout(() => $('adminPass').focus(), 60);
+  } else {
+    pickerTimer = setTimeout(showPicker, 280);
+  }
+});
+$('adminCancel').addEventListener('click', () => { $('adminModal').classList.remove('open'); $('adminPass').value = ''; });
+$('adminOk').addEventListener('click', tryAdminLogin);
+$('adminPass').addEventListener('keydown', e => { if (e.key === 'Enter') tryAdminLogin(); });
+function tryAdminLogin() {
+  if ($('adminPass').value.trim() === ADMIN_PASS) {
+    adminMode = true;
+    localStorage.setItem('luxAdmin', '1');
+    document.body.classList.add('admin');
+    $('adminModal').classList.remove('open');
+    $('adminPass').value = '';
+    showToast('🔴 ADMIN MODE ON — red ✕ buttons remove walls for everyone');
+  } else {
+    $('adminPass').value = '';
+    showToast('❌ Wrong passcode');
+  }
+}
+/* Restore admin session on this device */
+if (localStorage.getItem('luxAdmin') === '1') {
+  adminMode = true;
+  document.body.classList.add('admin');
+}
+
+async function deleteWall(id, cardEl, isDoom) {
+  if (!adminMode) return;
+  if (!confirm('Remove this wallpaper from the site for everyone?')) return;
+  let token = localStorage.getItem('luxToken');
+  if (!token) {
+    token = prompt('Paste your GitHub token (public_repo scope).\nSaved only on this device — never in the public code.\nCreate one at: github.com/settings/tokens/new?scopes=public_repo');
+    if (!token) return;
+    localStorage.setItem('luxToken', token.trim());
+  }
+  cardEl.style.opacity = '.4';
+  try {
+    const auth = { 'Authorization': 'Bearer ' + localStorage.getItem('luxToken'), 'Accept': 'application/vnd.github+json' };
+    const res = await fetch('https://api.github.com/repos/luxwalls/luxwall/contents/index.html?ref=main', { headers: auth });
+    const meta = await res.json();
+    if (!meta.content || !meta.sha) throw new Error('read failed');
+    let text = atob(meta.content.replace(/\s/g, ''));
+    let re;
+    if (isDoom) {
+      const esc = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      re = new RegExp("\\{\\s*t:'" + esc + "[\\s\\S]*?\\},\\s*");
+    } else {
+      re = new RegExp('\\["' + id + '"[^\\]]*\\],?\\s*');
+    }
+    if (!re.test(text)) throw new Error('wall not found in catalog');
+    text = text.replace(re, '');
+    text = text.replace(/,\s*,/g, ',').replace(/\[\s*,/, '[').replace(/,\s*\]/g, ']');
+    const put = await fetch('https://api.github.com/repos/luxwalls/luxwall/contents/index.html', {
+      method: 'PUT', headers: auth,
+      body: JSON.stringify({ message: 'Admin: remove wallpaper ' + id, content: btoa(unescape(encodeURIComponent(text))), sha: meta.sha, branch: 'main' })
+    });
+    if (!put.ok) throw new Error('commit failed');
+    if (isDoom) {
+      const di = DOOMS.findIndex(d => d.t === id);
+      if (di > -1) DOOMS.splice(di, 1);
+    } else {
+      const wi = WALLS.findIndex(w => w[0] === id);
+      if (wi > -1) WALLS.splice(wi, 1);
+      $('statCount').textContent = WALLS.length + '+';
+      filtered = filtered.filter(w => w[0] !== id);
+    }
+    cardEl.remove();
+    showToast('✅ Removed for everyone — live in ~1 min');
+  } catch (err) {
+    cardEl.style.opacity = '1';
+    showToast('❌ Delete failed — check token / connection');
+  }
+}
 
 /* ===== SPLASH ===== */
 const luxWord = $('luxWord');
@@ -463,10 +596,12 @@ function renderDoom() {
     const c = document.createElement('div');
     c.className = 'dcard'; c.style.animationDelay = Math.min(i*60, 400) + 'ms';
     c.innerHTML = `<div class="ib"><img loading="lazy" src="${m.img}" alt="${m.t}"></div>
+      <button class="delbtn" title="Remove (admin)">✕</button>
       <div class="meta"><span class="r">${m.t}<br>${m.res}</span><span class="g">GET</span></div>`;
     const img = c.querySelector('img');
     img.addEventListener('load', () => img.classList.add('loaded'));
     img.addEventListener('error', () => { img.classList.add('loaded'); img.style.background = 'linear-gradient(135deg,#052e16,#000)'; });
+    c.querySelector('.delbtn').addEventListener('click', e => { e.stopPropagation(); deleteWall(m.t, c, true); });
     c.addEventListener('click', () => {
       $('mImg').src = m.img;
       $('mMeta').textContent = `${m.t} · ${m.res}`;
@@ -683,6 +818,7 @@ function renderBatch() {
     card.style.animationDelay = Math.min(i * 40, 400) + 'ms';
     card.innerHTML = `
       <div class="imgbox"><img loading="lazy" src="${v.thumb}" alt="wallpaper ${v.id}"></div>
+      <button class="delbtn" title="Remove (admin)">✕</button>
       <div class="overlay">
         <div class="tags"><span class="tag">${v.res}</span>
         <span class="tag">${orientation(w)}</span>
@@ -693,6 +829,7 @@ function renderBatch() {
     const img = card.querySelector('img');
     img.addEventListener('load', () => img.classList.add('loaded'));
     img.addEventListener('error', () => img.classList.add('loaded', 'fallback'));
+    card.querySelector('.delbtn').addEventListener('click', e => { e.stopPropagation(); deleteWall(v.id, card, false); });
     card.querySelector('.btn').addEventListener('click', e => { e.stopPropagation(); openModal(w); showToast('⬇ Tap Get Full Res, then long-press to save'); });
     card.addEventListener('click', () => openModal(w));
     frag.appendChild(card);
@@ -729,8 +866,6 @@ document.querySelectorAll('.chip[data-f]').forEach(c => c.addEventListener('clic
   $('heroTitle').textContent = c.textContent === 'Top' ? 'Ultra HD Wallpapers' : c.textContent;
   refresh();
 }));
-
-$('homeBtn').addEventListener('click', showPicker);
 
 refresh();
 </script>
