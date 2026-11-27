@@ -419,24 +419,29 @@ const $ = id => document.getElementById(id);
 const grid = $('grid'), sentinel = $('sentinel'), toast = $('toast');
 
 /* ===== ADMIN SYSTEM =====
-   Owner-only moderation: triple-tap the LUX logo -> passcode -> red X buttons
-   appear on every wallpaper. Deleting commits the removal to the GitHub repo
-   (main branch) so the wall disappears for EVERYONE. */
+   Owner-only moderation. TWO ways to open the admin login:
+   1) Type the passcode in the SEARCH BAR and it pops open (recommended, easiest)
+   2) Triple-tap the LUX logo (forgiving 900ms window)
+   After login, red X buttons appear on every wallpaper. Deleting commits
+   the removal to the GitHub repo (main branch) so the wall disappears for EVERYONE. */
 const ADMIN_PASS = 'doomiscoming';
 let adminMode = false;
 
+function openAdminLogin() {
+  $('adminModal').classList.add('open');
+  setTimeout(() => $('adminPass').focus(), 60);
+}
 let logoTaps = 0, logoResetTimer = null, pickerTimer = null;
 $('homeBtn').addEventListener('click', () => {
   logoTaps++;
   clearTimeout(logoResetTimer);
   clearTimeout(pickerTimer);
-  logoResetTimer = setTimeout(() => { logoTaps = 0; }, 700);
+  logoResetTimer = setTimeout(() => { logoTaps = 0; }, 900);
   if (logoTaps >= 3) {
     logoTaps = 0;
-    $('adminModal').classList.add('open');
-    setTimeout(() => $('adminPass').focus(), 60);
+    openAdminLogin();
   } else {
-    pickerTimer = setTimeout(showPicker, 280);
+    pickerTimer = setTimeout(showPicker, 450);
   }
 });
 $('adminCancel').addEventListener('click', () => { $('adminModal').classList.remove('open'); $('adminPass').value = ''; });
@@ -495,6 +500,7 @@ async function deleteWall(id, cardEl, isDoom) {
     if (isDoom) {
       const di = DOOMS.findIndex(d => d.t === id);
       if (di > -1) DOOMS.splice(di, 1);
+      renderDoom();
     } else {
       const wi = WALLS.findIndex(w => w[0] === id);
       if (wi > -1) WALLS.splice(wi, 1);
@@ -855,8 +861,17 @@ $('modal').addEventListener('click', e => e.target === $('modal') && closeModal(
 const io = new IntersectionObserver(e => { if (e[0].isIntersecting) renderBatch(); }, { rootMargin: '500px 0px' });
 io.observe(sentinel);
 
+/* SEARCH BAR — typing the admin passcode opens admin login */
 let t; $('q').addEventListener('input', e => {
-  clearTimeout(t); t = setTimeout(() => { query = e.target.value.trim(); refresh(); }, 350);
+  const v = e.target.value;
+  if (v.trim().toLowerCase() === ADMIN_PASS) {
+    e.target.value = ''; query = '';
+    refresh();
+    if (adminMode) { showToast('🔴 Admin already ON'); return; }
+    openAdminLogin();
+    return;
+  }
+  clearTimeout(t); t = setTimeout(() => { query = v.trim(); refresh(); }, 350);
 });
 
 document.querySelectorAll('.chip[data-f]').forEach(c => c.addEventListener('click', () => {
