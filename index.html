@@ -261,6 +261,10 @@
   .stats b { color:#f2f2f5; font-weight:800; }
   .stats .sep { opacity:.35; margin:0 10px; }
   .stats a { color:inherit; text-decoration:none; border-bottom:1px solid rgba(255,255,255,.25); }
+  #luxDiamond { display:inline-block; margin-left:12px; color:var(--dim); opacity:.4;
+    font-size:11px; line-height:1; vertical-align:middle; cursor:default;
+    user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; }
+  #luxDiamond:active { transform:scale(.85); }
 
   /* ===== ADMIN MODE ===== */
   body.admin .logo .dot { background:linear-gradient(145deg,#fca5a5,#ef4444); color:#fff; }
@@ -385,7 +389,7 @@
 <div class="grid" id="grid"></div>
 <div id="sentinel"></div>
 <footer class="stats">
-  <b id="statCount">90+</b> curated walls<span class="sep">·</span> 4K–5K<span class="sep">·</span> updated weekly<span class="sep">·</span> made by <a href="https://luxwalls.github.io/luxwall/">dangerdevs</a>
+  <b id="statCount">90+</b> curated walls<span class="sep">·</span> 4K–5K<span class="sep">·</span> updated weekly<span class="sep">·</span> made by <a href="https://luxwalls.github.io/luxwall/">dangerdevs</a><span id="luxDiamond" title="◈">◈</span>
 </footer>
 
 <!-- ADMIN LOGIN MODAL -->
@@ -419,24 +423,44 @@ const $ = id => document.getElementById(id);
 const grid = $('grid'), sentinel = $('sentinel'), toast = $('toast');
 
 /* ===== ADMIN SYSTEM =====
-   Owner-only moderation: triple-tap the LUX logo -> passcode -> red X buttons
-   appear on every wallpaper. Deleting commits the removal to the GitHub repo
-   (main branch) so the wall disappears for EVERYONE. */
+   Owner-only moderation. THREE ways to open the admin login:
+   1) HIDDEN DIAMOND: triple-tap the tiny ◈ diamond next to "dangerdevs" in the footer (does nothing else)
+   2) Type the passcode in the SEARCH BAR
+   3) Triple-tap the LUX logo (backup)
+   After login, red X buttons appear on every wallpaper. Deleting commits
+   the removal to the GitHub repo (main branch) so the wall disappears for EVERYONE. */
 const ADMIN_PASS = 'doomiscoming';
 let adminMode = false;
+
+function openAdminLogin() {
+  $('adminModal').classList.add('open');
+  setTimeout(() => $('adminPass').focus(), 60);
+}
+
+/* Hidden decorative diamond in the footer — 3 taps opens admin terminal */
+let dTaps = 0, dTimer = null;
+$('luxDiamond').addEventListener('click', () => {
+  dTaps++;
+  clearTimeout(dTimer);
+  dTimer = setTimeout(() => { dTaps = 0; }, 1000);
+  if (dTaps >= 3) {
+    dTaps = 0;
+    if (adminMode) { showToast('🔴 Admin already ON'); return; }
+    openAdminLogin();
+  }
+});
 
 let logoTaps = 0, logoResetTimer = null, pickerTimer = null;
 $('homeBtn').addEventListener('click', () => {
   logoTaps++;
   clearTimeout(logoResetTimer);
   clearTimeout(pickerTimer);
-  logoResetTimer = setTimeout(() => { logoTaps = 0; }, 700);
+  logoResetTimer = setTimeout(() => { logoTaps = 0; }, 900);
   if (logoTaps >= 3) {
     logoTaps = 0;
-    $('adminModal').classList.add('open');
-    setTimeout(() => $('adminPass').focus(), 60);
+    openAdminLogin();
   } else {
-    pickerTimer = setTimeout(showPicker, 280);
+    pickerTimer = setTimeout(showPicker, 450);
   }
 });
 $('adminCancel').addEventListener('click', () => { $('adminModal').classList.remove('open'); $('adminPass').value = ''; });
@@ -495,6 +519,7 @@ async function deleteWall(id, cardEl, isDoom) {
     if (isDoom) {
       const di = DOOMS.findIndex(d => d.t === id);
       if (di > -1) DOOMS.splice(di, 1);
+      renderDoom();
     } else {
       const wi = WALLS.findIndex(w => w[0] === id);
       if (wi > -1) WALLS.splice(wi, 1);
@@ -855,8 +880,17 @@ $('modal').addEventListener('click', e => e.target === $('modal') && closeModal(
 const io = new IntersectionObserver(e => { if (e[0].isIntersecting) renderBatch(); }, { rootMargin: '500px 0px' });
 io.observe(sentinel);
 
+/* SEARCH BAR — typing the admin passcode opens admin login (backup trigger) */
 let t; $('q').addEventListener('input', e => {
-  clearTimeout(t); t = setTimeout(() => { query = e.target.value.trim(); refresh(); }, 350);
+  const v = e.target.value;
+  if (v.trim().toLowerCase() === ADMIN_PASS) {
+    e.target.value = ''; query = '';
+    refresh();
+    if (adminMode) { showToast('🔴 Admin already ON'); return; }
+    openAdminLogin();
+    return;
+  }
+  clearTimeout(t); t = setTimeout(() => { query = v.trim(); refresh(); }, 350);
 });
 
 document.querySelectorAll('.chip[data-f]').forEach(c => c.addEventListener('click', () => {
