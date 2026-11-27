@@ -7,6 +7,15 @@
 <title>Lux Wallpapers — Ultra HD 4K</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Cinzel:wght@700;900&display=swap" rel="stylesheet" />
+<!-- Google Analytics (for buyer/owner): replace G-XXXXXXXXXX with your GA4 measurement ID, then uncomment the two script tags below.
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+</script>
+-->
 <style>
   :root {
     --bg:#000; --glass:rgba(10,10,12,.55); --stroke:rgba(255,255,255,.12);
@@ -217,7 +226,7 @@
   .hero h2 { font-size:clamp(24px,4.5vw,42px); font-weight:800; letter-spacing:-1px; color:#fff; text-shadow:var(--glow-l); }
   .hero p { color:#c9c9d2; margin-top:8px; font-size:clamp(13px,1.6vw,15px); text-shadow:0 1px 8px rgba(0,0,0,.8); }
   .grid { display:grid; gap:13px; grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));
-    padding:18px clamp(10px,3vw,32px) 70px; max-width:1700px; margin:0 auto; }
+    padding:18px clamp(10px,3vw,32px) 40px; max-width:1700px; margin:0 auto; }
   .card { position:relative; border-radius:16px; overflow:hidden; cursor:pointer; background:#0d0d10;
     border:1px solid var(--stroke); opacity:0; transform:translateY(16px);
     animation:rise .45s cubic-bezier(.2,.7,.3,1) forwards; transition:transform .3s, box-shadow .3s, border-color .3s; }
@@ -245,7 +254,12 @@
     box-shadow:var(--glow-s); transition:.25s; flex:none; }
   .btn:hover { transform:scale(1.06); box-shadow:var(--glow-l); }
   .btn:active { transform:scale(.97); }
-  #sentinel { text-align:center; padding:30px 20px; color:var(--dim); font-size:13px; letter-spacing:1px; text-shadow:0 1px 6px rgba(0,0,0,.9); }
+  #sentinel { text-align:center; padding:30px 20px 8px; color:var(--dim); font-size:13px; letter-spacing:1px; text-shadow:0 1px 6px rgba(0,0,0,.9); }
+  .stats { text-align:center; padding:8px 20px 54px; color:var(--dim); font-size:clamp(11px,1.8vw,13px);
+    letter-spacing:.14em; text-transform:uppercase; text-shadow:0 1px 8px rgba(0,0,0,.9); }
+  .stats b { color:#f2f2f5; font-weight:800; }
+  .stats .sep { opacity:.35; margin:0 10px; }
+  .stats a { color:inherit; text-decoration:none; border-bottom:1px solid rgba(255,255,255,.25); }
   .modal { position:fixed; inset:0; z-index:300; display:none; place-items:center;
     background:rgba(0,0,2,.9); backdrop-filter:blur(12px); padding:clamp(14px,4vw,32px); }
   .modal.open { display:grid; }
@@ -341,6 +355,9 @@
 
 <div class="grid" id="grid"></div>
 <div id="sentinel"></div>
+<footer class="stats">
+  <b id="statCount">90+</b> curated walls<span class="sep">·</span> 4K–5K<span class="sep">·</span> updated weekly<span class="sep">·</span> made by <a href="https://luxwalls.github.io/luxwall/">dangerdevs</a>
+</footer>
 
 <div class="modal" id="modal">
   <button class="close" id="mClose">✕</button>
@@ -528,6 +545,10 @@ const WALLS = [
 ["qr5d27","png","3440x1440",1456,1000000],
 ["islam1","webp","3840x2160",5000,1500000],["islam2","webp","3840x2160",5000,1500000]
 ];
+
+/* ===== STATS FOOTER — auto-count the catalog ===== */
+const totalWalls = WALLS.length;
+$('statCount').textContent = totalWalls + '+';
 
 /* ===== CATEGORIES ===== */
 const CATS = [
